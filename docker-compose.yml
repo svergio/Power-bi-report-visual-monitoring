@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pbimonitor-web
+    env_file:
+      - .env
+    environment:
+      PG_HOST: db
+      PG_PORT: 5432
+      PG_DATABASE: pbimonitor
+      PG_USER: pbimonitor
+      PG_PASSWORD: pbimonitor
+      PG_SCHEMA: public
+      PG_SCHEMA_ALLOWLIST: public
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./Data:/app/Data
+      - ./logs:/app/logs
+      - ./reports.json:/app/reports.json:ro
+    healthcheck:
+      test: ["CMD", "python", "-m", "pbimonitor", "--help"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: pbimonitor-db
+    environment:
+      POSTGRES_DB: pbimonitor
+      POSTGRES_USER: pbimonitor
+      POSTGRES_PASSWORD: pbimonitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pbimonitor -d pbimonitor"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: pbimonitor-redis
+    profiles: ["optional"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+

@@ -1,0 +1,31 @@
+{
+  "reports": [
+    {
+      "id": "daily_sales",
+      "name": "Daily Sales Overview",
+      "url": "https://powerbi.example.com/reports/daily-sales",
+      "interval": 15,
+      "start_time": "07:00",
+      "threshold": 5.0,
+      "enabled": true
+    },
+    {
+      "id": "credit_risk",
+      "name": "Credit Risk Dashboard",
+      "url": "https://powerbi.example.com/reports/credit-risk",
+      "interval": 30,
+      "start_time": "08:00",
+      "threshold": 3.5,
+      "enabled": true
+    },
+    {
+      "id": "operations_quality",
+      "name": "Operations Quality Report",
+      "url": "https://powerbi.example.com/reports/operations-quality",
+      "interval": 60,
+      "start_time": "06:30",
+      "threshold": 4.0,
+      "enabled": true
+    }
+  ]
+}

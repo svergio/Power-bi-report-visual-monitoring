@@ -1,112 +1,66 @@
-# Power BI Multi-Report Monitor
+# Power BI Report Visual Monitor
 
-Система мониторинга 96+ Power BI Report Server отчетов с обнаружением визуальных изменений через векторную математику.
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Математика
+Открытый мониторинг визуальной отдачи отчётов Power BI Report Server и веб-отчётов Power BI. Проект разбит на слои DDD (`domain`, `application`, `infrastructure`, `config`) и использует:
 
-**Quadtree + MSE (Mean Squared Error)**
-- Рекурсивное деление скриншота на блоки 32×32 px (5 уровней drill-down)
-- MSE сравнение каждого блока между last_baseline и current
-- Точная локализация измененных областей
+- рендеринг через Selenium с повторами (retry/backoff) и повторной авторизацией;
+- визуальное сравнение: quadtree и MSE;
+- хранение XOR-дельты с gzip;
+- PostgreSQL и пул соединений psycopg3;
+- очередь задач в процессе и ограничение нагрузки (backpressure).
 
-**XOR Delta Compression**
-```python
-# Сохранение (NumPy + gzip)
-delta = np.bitwise_xor(initial_baseline, current_screenshot)
-compressed = gzip.compress(delta)  # ~12-150 KB вместо 423 KB PNG
-→ PostgreSQL BYTEA
+## Быстрый старт
 
-# Восстановление
-restored = np.bitwise_xor(initial_baseline, decompress(delta))
-→ 100% точность, побитовое совпадение
-```
-
-**Экономия:** 92-97% места (245 KB delta vs 3.4 MB PNG для 8 проверок)
-
-## Три команды
-
-### 1. BUILD - Инициализация (один раз)
+### 1) Установка
 
 ```bash
-python monitor.py --build reports.json
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-- Создает PostgreSQL схему (db_new.sandbox)
-- Создает init_baseline для всех отчетов
-- НЕ запускает мониторинг
-
-### 2. CHECK - Ручная проверка
+Чтобы модуль `pbimonitor` находился при `python -m pbimonitor`, добавьте каталог `src` в `PYTHONPATH`:
 
 ```bash
-python monitor.py --check sales_dev_fix
+# Linux / macOS
+export PYTHONPATH=src
 ```
 
-- Проверяет один отчет немедленно
-- Создает XOR delta (~12 KB) → PostgreSQL
-- Создает diff.png (визуализация)
-- Обновляет last_baseline
+```powershell
+# Windows PowerShell
+$env:PYTHONPATH = "src"
+```
 
-**Pipeline (унифицированный):**
-1. Логин + создать current_screenshot.png
-2. Сравнить с last_baseline.png (quadtree)
-3. Создать XOR delta → БД
-4. Создать current_screenshot_diff.png
-5. Удалить old last_baseline
-6. Переименовать current → last_baseline
+Если в репозитории настроен устанавливаемый пакет (`pyproject.toml` / `setup.cfg`), дополнительно можно выполнить `pip install -e .` из корня репозитория.
 
-### 3. START - Планировщик
+### 2) Настройка окружения
 
 ```bash
-python monitor.py reports.json
+cp .env.example .env
 ```
 
-- Проверяет отчеты по расписанию (interval, start_time)
-- Многопоточность: 1-5 потоков
-- Бесконечный цикл (Ctrl+C для остановки)
+Отредактируйте `.env`:
 
-### 4. RESTORE - Восстановление из БД
+- подключение к PostgreSQL: `PG_HOST`, `PG_DATABASE`, `PG_USER`, `PG_PASSWORD`, `PG_SCHEMA`;
+- политика схемы: `PG_SCHEMA_ALLOWLIST`; команда `python -m pbimonitor --init-db` выполняет `CREATE SCHEMA IF NOT EXISTS` для `PG_SCHEMA` и накатывает `schema.sql`;
+- при необходимости доступ к Power BI: `POWERBI_USERNAME`, `POWERBI_PASSWORD`;
+- среда исполнения: `REPORTS_FILE`, число воркеров, пороги, параметры повторов.
 
-```bash
-python monitor.py --restore-screenshot REPORT_ID CHECK_ID
-```
+### 3) Конфигурация отчётов
 
-- Восстанавливает скриншот из delta
-- Файл: Data/recovery/restored_{report_id}_{check_id}.png
+Используйте `reports.json` или скопируйте `example_reports.json` и подставьте свои URL:
 
-## Структура данных
-
-```
-Data/                                    # Файловый кеш
-├── baselines/
-│   └── {report_id}_init_baseline.png   # Неизменный эталон
-├── changes/{report_id}/
-│   ├── last_baseline.png               # Обновляется каждый чек
-│   └── current_screenshot_diff.png     # Визуализация (перезаписывается)
-├── recovery/
-│   └── restored_*.png                  # Восстановленные из БД
-└── import/
-    └── reports.csv                     # Конфигурация (будущее)
-
-PostgreSQL (db_new.sandbox):             # Logger
-├── baselines: report_id, hash_value
-└── monitoring_checks: status, diff_percent, delta_compressed (BYTEA)
-```
-
-**БД = logger (БЕЗ путей к файлам)**  
-**Data/ = кеш (файлы БЕЗ timestamp)**
-
-## Конфигурация
-
-**reports.json:**
 ```json
 {
   "reports": [
     {
-      "id": "sales_dev_fix",
-      "name": "Отчет продаж",
-      "url": "http://dtln-sql-03/.../Sales",
-      "interval": 60,
-      "start_time": "09:30",
+      "id": "daily_sales",
+      "name": "Daily Sales Overview",
+      "url": "https://powerbi.example.com/reports/daily-sales",
+      "interval": 15,
+      "start_time": "07:00",
       "threshold": 5.0,
       "enabled": true
     }
@@ -114,50 +68,98 @@ PostgreSQL (db_new.sandbox):             # Logger
 }
 ```
 
-**config.env:**
-- PostgreSQL: `db_new.sandbox` @ 10.3.0.100
-- Power BI: r.power@resoleasing.com
-- Quadtree: MSE_THRESHOLD=1.0, MIN_BLOCK_SIZE=32, MAX_DEPTH=5
+### 4) Схема БД и запуск
 
-## Метрики
-
-**diff_percent для анализа:**
-- 0% = unchanged (данные не обновились)
-- 0.01-10% = changed (нормальное обновление) ✓
-- >20-30% = changed (возможная ошибка!) 🚨
-
-**Статусы:**
-- `baseline_created` - первый запуск
-- `unchanged` - визуально идентично
-- `changed` - обнаружены изменения
-- `error` - ошибка скриншота
-
-## PostgreSQL запросы
-
-```sql
-SET search_path TO sandbox;
-
--- История проверок
-SELECT id, check_time, status, diff_percent, 
-       LENGTH(delta_compressed)/1024 as delta_kb
-FROM monitoring_checks 
-WHERE report_id = 'sales_dev_fix'
-ORDER BY check_time DESC;
-
--- Статистика
-SELECT * FROM v_report_stats;
-
--- Последние проверки
-SELECT * FROM v_latest_checks;
+```bash
+python -m pbimonitor --init-db
+python -m pbimonitor --build
+python -m pbimonitor --check daily_sales
+python -m pbimonitor --start
 ```
+
+## Docker
+
+```bash
+docker compose up --build -d
+```
+
+Сервисы:
+
+- `web` — процесс pbimonitor;
+- `db` — PostgreSQL;
+- `redis` (опциональный профиль): зарезервирован под будущую распределённую очередь.
+
+## Архитектура DDD
+
+```
+src/pbimonitor/
+  domain/
+    reports/        # сущности, quadtree, XOR-сервисы
+    sessions/       # сущности и сервисы сессии авторизации
+  infrastructure/
+    selenium/       # SeleniumClient, повторы, исключения повторного входа
+    storage/        # адаптер пула PostgreSQL
+    queue/          # планировщик в процессе, воркеры, backpressure
+  application/
+    usecases/       # check_report, diff_report, update_storage
+    dto/
+  config/
+    settings.py     # pydantic BaseSettings и проверка reports.json
+  main.py           # точка входа CLI
+```
+
+## Метрики времени выполнения
+
+Приложение пишет снимок метрик:
+
+- `render_duration_ms`
+- `diff_duration_ms`
+- `delta_size_bytes`
+- `below_diff_threshold_rate` (доля проверок, где процент визуального отличия ниже порога `threshold` отчёта)
 
 ## Требования
 
-- Python 3.8+
-- PostgreSQL 12+ (db_new.sandbox)
-- Chrome/Chromium
-- NumPy, Pillow, Selenium, psycopg2
+- Python 3.10+
+- PostgreSQL 12+
+- Chrome/Chromium, совместимый с Selenium
+- Доступ с хоста монитора к Power BI Report Server или размещённым в сети URL отчётов Power BI
 
----
+## Требования к PostgreSQL
 
-**Готово к production мониторингу 96 отчетов!**
+- Пользователь БД должен иметь право создавать схему (или целевую схему) и объекты в `PG_SCHEMA` (таблицы, индексы, представления, функции).
+- `schema.sql` применяется командой `python -m pbimonitor --init-db` (при отсутствии схемы она создаётся, затем выполняется DDL).
+- Таблицы: `baselines`, `monitoring_checks`.
+
+## Требования к Power BI
+
+- Отчёты должны открываться с машины, где запущен монитор.
+- Для сред с интегрированной аутентификацией при необходимости задайте `POWERBI_AUTH_SERVER_WHITELIST`.
+- Для простой Basic-auth укажите `POWERBI_USERNAME` и `POWERBI_PASSWORD` в `.env`.
+
+## Безопасность
+
+- Не коммитьте `.env`.
+- В продакшене используйте хранилища секретов (Kubernetes Secrets, Vault, облачные хранилища).
+- Регулярно меняйте пароли БД и учётные данные отчётов.
+- Кеш скриншотов (`Data/`) не включайте в систему контроля версий.
+
+## Устранение неполадок
+
+- Ошибка конфигурации / отсутствуют переменные окружения — заполните обязательные поля в `.env`.
+- `PG_SCHEMA '<schema>' is not in allowlist` — добавьте схему в `PG_SCHEMA_ALLOWLIST`.
+- Ошибки подключения к БД — проверьте хост, порт, учётные данные, схему и сеть.
+- Selenium запускается, снимок пустой — увеличьте `PAGE_LOAD_WAIT`, проверьте загрузку iframe и доступность URL.
+- Слишком много ложных срабатываний diff — увеличьте `MSE_THRESHOLD` или `MIN_BLOCK_SIZE`.
+- Пропущены визуальные изменения — уменьшите `MSE_THRESHOLD` и проверьте порог `threshold` для отчёта.
+
+## Структура репозитория
+
+- `src/pbimonitor/` — реализация по DDD
+- `example_reports.json` — пример конфигурации отчётов
+- `tests/` — pytest
+- `.github/workflows/ci.yml` — непрерывная интеграция (описание шагов на английском, принято для GitHub Actions)
+- `Dockerfile` и `docker-compose.yml` — контейнерный запуск
+
+## Участие в разработке
+
+См. [CONTRIBUTING.md](CONTRIBUTING.md).

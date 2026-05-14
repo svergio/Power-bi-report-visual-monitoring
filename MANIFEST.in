@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+include .env.example
+include example_reports.json
+include reports.json
+recursive-include src *.py
