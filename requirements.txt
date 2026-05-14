@@ -1,7 +1,7 @@
 python-dotenv>=1.0.0
 psycopg[binary]>=3.2.0
 psycopg_pool>=3.2.0
-selenium>=4.20.0
+selenium>=4.44.0
 webdriver-manager>=4.0.1
 Pillow>=10.3.0
 ImageHash>=4.3.1
