@@ -4,7 +4,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional, TypeVar
 from urllib.parse import quote, urlparse, urlunparse
@@ -102,7 +102,7 @@ class SeleniumClient:
         self._ensure_driver()
         self._auth_session = AuthSession(
             username=self._browser.username,
-            created_at=datetime.now(UTC),
+            created_at=datetime.now(timezone.utc),
             ttl_seconds=30 * 60,
         )
 
@@ -128,7 +128,7 @@ class SeleniumClient:
         self._driver = self._driver_factory(service, options)
         self._auth_session = AuthSession(
             username=self._browser.username,
-            created_at=datetime.now(UTC),
+            created_at=datetime.now(timezone.utc),
             ttl_seconds=30 * 60,
         )
 
@@ -151,7 +151,7 @@ class SeleniumClient:
                     self._retry_policy.max_delay_seconds,
                     self._retry_policy.base_delay_seconds * (2 ** (attempt - 1)),
                 )
-                delay += random.uniform(0.0, self._retry_policy.jitter_seconds)
+                delay += random.uniform(0.0, self._retry_policy.jitter_seconds)  # nosec B311
                 time.sleep(delay)
         raise SeleniumTimeout(f"Selenium operation failed: {operation}") from last_error
 
@@ -206,7 +206,7 @@ class SeleniumClient:
         if self._auth_session is None:
             return
         self._auth_session = self._session_service.mark_keepalive(
-            self._auth_session, datetime.now(UTC)
+            self._auth_session, datetime.now(timezone.utc)
         )
 
     def _build_auth_url(self, url: str) -> str:

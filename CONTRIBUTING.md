@@ -14,6 +14,11 @@
 
 Для `python -m pbimonitor` задайте `PYTHONPATH=src` (см. README).
 
+## Документация, Wiki и GitHub Pages
+
+- Длинная статья на Pages и разбивка по Wiki: см. README (ссылки на сайт и Wiki).
+- Правила для правок документации и синхронизации Wiki с `*.wiki.git`: каталог [`docs/agent/`](docs/agent/) — [`CLAUDE.md`](docs/agent/CLAUDE.md), [`CURSOR.md`](docs/agent/CURSOR.md).
+
 ## Стиль кода
 
 - Делайте изменения небольшими и сфокусированными.

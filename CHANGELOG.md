@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- CI on Python 3.10: replace `datetime.UTC` with `timezone.utc` in Selenium client and session integration test (UTC alias exists from 3.11+).
+- Bandit: mark retry backoff `random.uniform` jitter with `# nosec B311` (not used for cryptography).
+
+### Fixed (RU)
+
+- CI на Python 3.10: вместо `datetime.UTC` используется `timezone.utc` в Selenium-клиенте и интеграционном тесте сессии.
+- Bandit: для jitter в backoff помечена строка `# nosec B311`.
+
 ### Added
 
 - `docs/agent/CLAUDE.md` and `docs/agent/CURSOR.md`: policy for AI-assisted documentation, Wiki sync, optional `Co-authored-by` on doc-only commits; README links.
