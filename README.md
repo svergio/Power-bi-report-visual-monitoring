@@ -3,9 +3,11 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Documentation site (GitHub Pages):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/) — rationale for visual monitoring, dashboard KPI coverage, and an observability cost model (render + diff vs repeated warehouse queries).
+**Documentation site (GitHub Pages):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/) — bilingual **EN/RU** rationale for visual monitoring, KPI canvas coverage, and an observability cost model (render + diff vs repeated warehouse queries).
 
-**Also:** [Database schema (markdown)](docs/DATABASE.md) · [DDL `schema.sql`](schema.sql) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+**Wiki (hub, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — short index with links to README, Pages, and `docs/` (sources in [`wiki/Home.md`](wiki/Home.md) in this repo).
+
+**Also:** [Database schema `docs/DATABASE.md` (EN/RU)](docs/DATABASE.md) · [DDL `schema.sql`](schema.sql) · [Roadmap `ROADMAP.md` (EN/RU)](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 ## What this is
 
@@ -58,9 +60,11 @@ For a full Russian walkthrough, Docker service names, metrics, and troubleshooti
 - PostgreSQL и пул соединений psycopg3;
 - очередь задач в процессе и ограничение нагрузки (backpressure).
 
-**Сайт с обоснованием подхода (GitHub Pages):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/)
+**Сайт с обоснованием подхода (GitHub Pages, EN/RU на одной странице):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/)
 
-**Схема БД (EN):** [docs/DATABASE.md](docs/DATABASE.md) · **DDL:** [schema.sql](schema.sql) · **План развития:** [ROADMAP.md](ROADMAP.md)
+**Вики (хаб, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — краткое оглавление и ссылки на README, Pages и `docs/` (исходники: [`wiki/Home.md`](wiki/Home.md)).
+
+**Схема БД (EN/RU):** [docs/DATABASE.md](docs/DATABASE.md) · **DDL:** [schema.sql](schema.sql) · **Дорожная карта (EN/RU):** [ROADMAP.md](ROADMAP.md)
 
 ### Команды CLI (`python -m pbimonitor`)
 
@@ -236,7 +240,8 @@ src/pbimonitor/
 - `example_reports.json` — пример конфигурации отчётов
 - `tests/` — pytest
 - `.github/workflows/ci.yml` — непрерывная интеграция
-- `.github/workflows/pages.yml` — публикация GitHub Pages из `docs/`
+- `docs/` — GitHub Pages (`index.html`) и `DATABASE.md`
+- `wiki/` — исходники главной Wiki (`Home.md`, `_Sidebar.md`) для синхронизации с `*.wiki.git`
 - `Dockerfile` и `docker-compose.yml` — контейнерный запуск
 
 ### Участие в разработке
