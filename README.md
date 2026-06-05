@@ -1,4 +1,4 @@
-# Power BI Report Visual Monitor
+# Power BI Report Visual Monitoring
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
