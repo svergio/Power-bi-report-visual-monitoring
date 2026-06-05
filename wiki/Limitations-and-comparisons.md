@@ -27,6 +27,10 @@ Performance Analyzer (typically in Power BI Desktop) exposes DAX and visual timi
 
 Headless Chrome consumes CPU/RAM; many wide dashboards at aggressive intervals can contend with other workloads on the same VM. Screenshots may contain sensitive figures &mdash; encrypt disks, restrict file permissions, and exclude `Data/` from backups that leave your trust zone.
 
+### Search engines and duplicate text
+
+The [GitHub Pages](https://svergio.github.io/Power-bi-report-visual-monitoring/) article and this Wiki intentionally **overlap in topic** but split depth: the HTML page is a single long EN/RU landing for people arriving from web search; the Wiki splits the same themes into linkable pages for operators editing in GitHub. Prefer **cross-linking** instead of pasting identical paragraphs everywhere, and keep factual claims aligned with `src/` so both surfaces stay trustworthy.
+
 ### Roadmap disclaimer
 
 Features such as user gesture scripts, OCR text assertions, REST/MySQL probes, clustered scheduling, Zabbix, and Grafana integrations appear in [ROADMAP.md](https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/ROADMAP.md) as **future** direction. This page describes the **shipped** visual detection scope only.
@@ -57,6 +61,10 @@ Performance Analyzer (обычно в Desktop) показывает таймин
 ### Риски и стоимость
 
 Headless Chrome жрёт CPU/RAM; много широких дашбордов с агрессивным интервалом конкурируют с другими задачами на ВМ. На снимках могут быть чувствительные цифры &mdash; шифруйте диск, ограничьте права на `Data/`, не включайте этот каталог в бэкапы вне зоны доверия.
+
+### Поисковики и дублирование текста
+
+[GitHub Pages](https://svergio.github.io/Power-bi-report-visual-monitoring/) и эта Wiki **пересекаются по темам**, но по ролям: HTML &mdash; один длинный лендинг EN/RU для входа из поиска; Wiki &mdash; разбиение на страницы со ссылками для эксплуатации в GitHub. Лучше **перекрёстные ссылки**, чем копипаста одних и тех же абзацев; формулировки должны совпадать с фактами из `src/`, чтобы обе поверхности оставались согласованными.
 
 ### Про roadmap
 

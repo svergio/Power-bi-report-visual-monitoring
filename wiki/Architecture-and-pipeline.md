@@ -41,6 +41,27 @@ Tables `baselines` and `monitoring_checks` (plus views `v_latest_checks`, `v_rep
 
 `InProcessScheduler` enqueues enabled reports, spawns worker threads up to the configured min/max bounds, reapplies factory-created Selenium clients per worker, and backs off using last render duration and failure counts. This is **not** a distributed queue yet; Redis in compose is reserved.
 
+### Check row statuses (authoritative behaviour)
+
+These strings are written to `monitoring_checks.status` by `CheckReportUseCase` in the shipped code:
+
+| Status | When |
+|--------|------|
+| `baseline_created` | No prior baseline: `baseline_hash` was missing **or** either `init_baseline` / `last_baseline` PNG was missing; after a successful capture the init image is copied to `last_baseline`, dhash is stored in `baselines`, `diff_percent` is `0`, no delta. |
+| `unchanged` | Baseline existed; diff returned `diff_percent == 0`; the new capture replaces `last_baseline.png` on success. |
+| `changed` | Baseline existed; diff returned `diff_percent > 0`; same promotion of the new capture to `last_baseline.png` on success. |
+| `error` | Any exception in the check path; stored row clears `diff_percent` and screenshot hash, `error` holds the message. |
+
+The per-report `threshold` in `reports.json` feeds **metrics** (`diff_percent < threshold` rate), not the `changed` vs `unchanged` branch (that branch uses strict `> 0` vs zero).
+
+### Mini glossary
+
+- **Init baseline** — `Data/baselines/<id>_init_baseline.png`; stable anchor for XOR delta bytes.
+- **Last baseline** — `Data/changes/<id>/last_baseline.png`; rolling compare target.
+- **diff_percent** — fraction of canvas area flagged different by the quadtree / MSE policy.
+- **dhash** — perceptual hash stored in `baselines.hash_value` / check rows for fingerprinting.
+- **XOR delta** — optional gzip-compressed payload versus the init baseline for forensics.
+
 ### Further reading
 
 - [docs/DATABASE.md](https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md) for column-level commentary.
@@ -86,6 +107,27 @@ Tables `baselines` and `monitoring_checks` (plus views `v_latest_checks`, `v_rep
 ### Планировщик
 
 `InProcessScheduler` ставит в очередь включённые отчёты, поднимает воркеры в пределах min/max, создаёт клиентов Selenium на воркер, учитывает длительность рендера и число сбоев. Это **не** распределённая очередь; Redis в compose зарезервирован.
+
+### Статусы строки проверки (как в коде)
+
+Строка `monitoring_checks.status` заполняется в `CheckReportUseCase`:
+
+| Статус | Когда |
+|--------|-------|
+| `baseline_created` | Не было baseline: нет хеша в БД **или** отсутствует один из файлов `init_baseline` / `last_baseline`; после успешного снимка init копируется в `last_baseline`, dhash в `baselines`, `diff_percent` = 0, дельты нет. |
+| `unchanged` | Baseline был; diff дал `diff_percent == 0`; при успехе новый кадр становится `last_baseline.png`. |
+| `changed` | Baseline был; `diff_percent > 0`; при успехе тот же перенос нового кадра в `last_baseline.png`. |
+| `error` | Исключение в цепочке; в записи обнуляются `diff_percent` и хеш снимка, текст в `error`. |
+
+Поле `threshold` в `reports.json` участвует в **метриках** (доля случаев `diff_percent < threshold`), а не в ветвлении `changed` / `unchanged` (там сравнение с нулём).
+
+### Мини-глоссарий
+
+- **Init baseline** — `Data/baselines/<id>_init_baseline.png`; опора для XOR-дельты.
+- **Last baseline** — `Data/changes/<id>/last_baseline.png`; скользящий эталон сравнения.
+- **diff_percent** — доля площади канваса, помеченная отличной при текущей политике diff.
+- **dhash** — перцептивный хеш в `baselines` / строках проверок.
+- **XOR-дельта** — опциональный gzip-блок относительно init baseline.
 
 ### Дальше
 

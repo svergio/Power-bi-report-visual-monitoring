@@ -7,6 +7,8 @@
 
 **Wiki (hub, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — expanded hub plus deep pages ([Architecture](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Architecture-and-pipeline), [Operations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Operations-and-tuning), [Limitations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Limitations-and-comparisons)); Markdown sources live under [`wiki/`](wiki/).
 
+**AI / Cursor maintainer notes (Wiki + Pages):** [`docs/agent/`](docs/agent/) — [`CLAUDE.md`](docs/agent/CLAUDE.md) (general doc agent rules), [`CURSOR.md`](docs/agent/CURSOR.md) (Wiki sync and optional `Co-authored-by` policy for doc-only commits).
+
 **Also:** [Database schema `docs/DATABASE.md` (EN/RU)](docs/DATABASE.md) · [DDL `schema.sql`](schema.sql) · [Roadmap `ROADMAP.md` (EN/RU)](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 ## What this is
@@ -63,6 +65,8 @@ For a full Russian walkthrough, Docker service names, metrics, and troubleshooti
 **Сайт с обоснованием подхода (GitHub Pages, EN/RU на одной странице):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/)
 
 **Вики (хаб, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — расширенный хаб и отдельные страницы ([Architecture](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Architecture-and-pipeline), [Operations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Operations-and-tuning), [Limitations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Limitations-and-comparisons)); исходники Markdown в [`wiki/`](wiki/).
+
+**Заметки для агента (Wiki + Pages):** [`docs/agent/`](docs/agent/) — [`CLAUDE.md`](docs/agent/CLAUDE.md), [`CURSOR.md`](docs/agent/CURSOR.md) (синк Wiki и политика `Co-authored-by` только для doc-only коммитов).
 
 **Схема БД (EN/RU):** [docs/DATABASE.md](docs/DATABASE.md) · **DDL:** [schema.sql](schema.sql) · **Дорожная карта (EN/RU):** [ROADMAP.md](ROADMAP.md)
 

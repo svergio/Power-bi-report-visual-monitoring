@@ -42,10 +42,25 @@
 1. Confirm `python -m pbimonitor --help` runs with expected flags (English strings).
 2. Tail logs for `check_report_failed` vs persisted `error` rows.
 3. Open `current_screenshot_diff.png` when diff rendering is enabled.
-4. Query `v_latest_checks` for quick health.
+4. Query `v_latest_checks` for quick health (see [docs/DATABASE.md](https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md) for column meanings).
 5. If disk grows, plan `cleanup_old_checks` (SQL function) with retention aligned to compliance.
 
-### metrics snapshot
+### First run vs production
+
+**Lab / first run:** widen logging, keep `DIFF_ENABLED` on while you tune `PAGE_LOAD_WAIT` and diff thresholds, run `--check` per report before enabling `--start`, and snapshot `Data/` tree sizes.
+
+**Production:** run `--start` under a supervisor with restart policy, restrict host access to `Data/`, rotate or bound `monitoring_checks` growth via `cleanup_old_checks`, and treat `threshold` consistently in dashboards that read `below_diff_threshold_rate`.
+
+### Typical failures
+
+| Symptom | Checks |
+|---------|--------|
+| Blank or partial PNG | Increase `PAGE_LOAD_WAIT`; confirm the URL is reachable from the host; verify viewport fits the embedded frame. |
+| Frequent `error` with timeout | Network path to Power BI, Chrome/driver compatibility, concurrent load on the same VM. |
+| Long `unchanged` during known incidents | Wrong credentials showing an empty shell page; diff thresholds swallowing tiny shifts; model changed but visuals did not. |
+| Disk pressure under `Data/changes` | Disable diff images if not needed; lower schedule frequency; archive old PNGs outside the hot path. |
+
+### Metrics snapshot
 
 The process emits `render_duration_ms`, `diff_duration_ms`, `delta_size_bytes`, and `below_diff_threshold_rate`. Use them to see whether you are CPU-bound in diff, IO-bound in PNG writes, or simply scheduling too aggressively.
 
@@ -91,8 +106,23 @@ The process emits `render_duration_ms`, `diff_duration_ms`, `delta_size_bytes`, 
 1. `python -m pbimonitor --help` отрабатывает (тексты на английском).
 2. Логи: `check_report_failed` vs запись `error` в БД.
 3. Открыть `current_screenshot_diff.png`, если diff включён.
-4. `SELECT * FROM v_latest_checks` (в вашей схеме) для обзора.
+4. `SELECT * FROM v_latest_checks` (в вашей схеме) для обзора; колонки &mdash; в [docs/DATABASE.md](https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md).
 5. Рост диска &mdash; политика `cleanup_old_checks` и срок хранения.
+
+### Первый запуск и прод
+
+**Стенд / первый запуск:** шире логирование, `DIFF_ENABLED` включён на время настройки `PAGE_LOAD_WAIT` и порогов diff, сначала `--check` по каждому отчёту, затем `--start`, контроль размера `Data/`.
+
+**Прод:** `--start` под supervisor с рестартом, ограничение доступа к `Data/`, политика роста `monitoring_checks` через `cleanup_old_checks`, согласованное чтение `threshold` в дашбордах с `below_diff_threshold_rate`.
+
+### Типичные сбои
+
+| Симптом | Что проверить |
+|---------|----------------|
+| Пустой или обрезанный PNG | Поднять `PAGE_LOAD_WAIT`; доступность URL с хоста; размер вьюпорта относительно iframe. |
+| Частый `error` с таймаутом | Сеть до Power BI, совместимость Chrome/драйвера, конкуренция за CPU на ВМ. |
+| Длинный `unchanged` при известном инциденте | Неверные учётные и &laquo;пустая&raquo; оболочка; пороги diff; модель менялась, но визуал нет. |
+| Давление на диск в `Data/changes` | Выключить diff-картинки; реже расписание; архив старых PNG вне горячего пути. |
 
 ### Метрики
 

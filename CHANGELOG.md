@@ -8,11 +8,15 @@
 
 ### Added
 
-- Expanded GitHub Pages article (`docs/index.html`) and Wiki hub (`wiki/Home.md`, `wiki/_Sidebar.md`) plus deep pages `wiki/Architecture-and-pipeline.md`, `wiki/Operations-and-tuning.md`, `wiki/Limitations-and-comparisons.md`; README cross-links to the wiki pages.
+- `docs/agent/CLAUDE.md` and `docs/agent/CURSOR.md`: policy for AI-assisted documentation, Wiki sync, optional `Co-authored-by` on doc-only commits; README links.
+- Wiki: expanded `Home.md`; Architecture / Operations / Limitations enriched (statuses, first-run vs prod, SEO/duplicate-text note); cross-links to agent policy.
+- GitHub Pages `docs/index.html`: SEO metadata (canonical, hreflang, robots, keywords, Open Graph, Twitter card, JSON-LD `SoftwareApplication`); nav links to `docs/agent`.
 
 ### Added (RU)
 
-- Расширены статья на GitHub Pages (`docs/index.html`) и Wiki: хаб (`wiki/Home.md`, `wiki/_Sidebar.md`) и страницы Architecture / Operations / Limitations; в README добавлены ссылки на подстраницы Wiki.
+- `docs/agent/CLAUDE.md` и `docs/agent/CURSOR.md`: политика правок документации агентом, синк Wiki, опциональный `Co-authored-by` для doc-only коммитов; ссылки в README.
+- Wiki: расширен `Home.md`; страницы Architecture / Operations / Limitations дополнены; ссылки на политику агента.
+- GitHub Pages `docs/index.html`: SEO в `<head>`; навигация на `docs/agent`.
 
 ### Changed
 

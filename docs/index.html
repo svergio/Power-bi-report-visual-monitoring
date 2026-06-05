@@ -4,7 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Power BI report visual monitoring — architecture, pipeline, and operations (EN/RU)</title>
-  <meta name="description" content="Visual monitoring for Power BI: rendered report as signal, architecture, check statuses, tuning, operations, limitations. Bilingual EN/RU.">
+  <meta name="description" content="Open-source visual monitoring for Power BI: headless screenshots, quadtree/MSE diff, PostgreSQL history, check statuses, tuning, Docker, limitations. Long bilingual EN/RU guide.">
+  <meta name="robots" content="index,follow">
+  <meta name="keywords" content="Power BI, visual monitoring, visual regression, screenshot monitoring, Selenium, PostgreSQL, open source, quadtree, MSE, baseline, GitHub Pages">
+  <link rel="canonical" href="https://svergio.github.io/Power-bi-report-visual-monitoring/">
+  <link rel="alternate" hreflang="en" href="https://svergio.github.io/Power-bi-report-visual-monitoring/">
+  <link rel="alternate" hreflang="ru" href="https://svergio.github.io/Power-bi-report-visual-monitoring/">
+  <link rel="alternate" hreflang="x-default" href="https://svergio.github.io/Power-bi-report-visual-monitoring/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Power BI report visual monitoring — architecture, pipeline, operations (EN/RU)">
+  <meta property="og:description" content="Visual monitoring for Power BI: rendered report as signal, architecture, check statuses, tuning, operations, limitations. Bilingual EN/RU.">
+  <meta property="og:url" content="https://svergio.github.io/Power-bi-report-visual-monitoring/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ru_RU">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Power BI report visual monitoring (EN/RU)">
+  <meta name="twitter:description" content="Headless visual regression monitoring for Power BI with PostgreSQL history. Architecture, tuning, operations.">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Power BI Report Visual Monitoring","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"isAccessibleForFree":true,"license":"https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/LICENSE","codeRepository":"https://github.com/svergio/Power-bi-report-visual-monitoring","url":"https://svergio.github.io/Power-bi-report-visual-monitoring/","description":"Open-source visual monitoring for published Power BI reports: Selenium screenshots, quadtree/MSE diff, PostgreSQL baselines and check history.","inLanguage":["en","ru"]}
+  </script>
   <style>
     body { font-family: Georgia, "Times New Roman", serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.58; color: #1a1a1a; }
     h1 { font-size: 1.75rem; font-weight: 600; }
@@ -33,6 +51,8 @@
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Database schema (markdown, EN/RU)</a>
         &middot;
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring#readme">README</a>
+        &middot;
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/tree/main/docs/agent">Agent doc policy</a>
       </nav>
     </header>
 
@@ -157,6 +177,8 @@
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Схема БД (markdown, EN/RU)</a>
         &middot;
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring#readme">README</a>
+        &middot;
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/tree/main/docs/agent">Политика правок агентом</a>
         &middot;
         <a href="#en">English version above</a>
       </nav>
