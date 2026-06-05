@@ -1,6 +1,6 @@
 This page is the **Wiki hub** (bilingual EN / RU). Canonical install docs, full README, and long-form rationale live in the main repository and on GitHub Pages so they stay in one place.
 
-**How to edit:** change [`wiki/Home.md`](https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/wiki/Home.md) via pull request, then sync to the live Wiki (clone `Power-bi-report-visual-monitoring.wiki.git` and push `Home.md`), or paste into the GitHub Wiki UI.
+**How to edit:** change [`wiki/Home.md`](https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/wiki/Home.md) via pull request, then sync to the live Wiki (`git clone https://github.com/svergio/Power-bi-report-visual-monitoring.wiki.git`, copy `Home.md` / `_Sidebar.md` from this repo, `git push`), or paste into the GitHub Wiki UI.
 
 ---
 
@@ -38,4 +38,4 @@ This page is the **Wiki hub** (bilingual EN / RU). Canonical install docs, full 
 
 ### Как править вики
 
-Исходник этой страницы в репозитории: `wiki/Home.md`. После merge в `main` скопируйте содержимое в репозиторий Wiki (`*.wiki.git`, файл `Home.md`) или отредактируйте страницу в веб-интерфейсе GitHub Wiki.
+Исходник этой страницы в репозитории: `wiki/Home.md`. После merge в `main` склонируйте [wiki-репозиторий](https://github.com/svergio/Power-bi-report-visual-monitoring.wiki.git), положите туда `Home.md` и `_Sidebar.md` (как в `wiki/` основного репо), выполните `git push`, либо отредактируйте страницу в веб-интерфейсе GitHub Wiki.
