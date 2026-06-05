@@ -15,8 +15,6 @@ from pbimonitor.infrastructure.storage.models import CheckRecord
 
 
 class PostgresStorage(MonitoringStorageRepository):
-    """Адаптер PostgreSQL на пуле соединений psycopg3."""
-
     def __init__(
         self,
         dsn: str,

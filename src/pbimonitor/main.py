@@ -32,12 +32,14 @@ def configure_logging(level: str) -> logging.Logger:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Мониторинг визуальной отдачи отчётов Power BI")
-    parser.add_argument("--env-file", default=".env", help="Путь к файлу .env")
-    parser.add_argument("--build", action="store_true", help="Построить базовые снимки для всех отчётов")
-    parser.add_argument("--check", metavar="REPORT_ID", help="Проверить один отчёт по идентификатору")
-    parser.add_argument("--start", action="store_true", help="Запустить цикл планировщика")
-    parser.add_argument("--init-db", action="store_true", help="Применить schema.sql к настроенной БД")
+    parser = argparse.ArgumentParser(
+        description="Visual monitoring for Power BI reports (render, diff, PostgreSQL-backed history).",
+    )
+    parser.add_argument("--env-file", default=".env", help="Path to .env file")
+    parser.add_argument("--build", action="store_true", help="Build baseline screenshots for all configured reports")
+    parser.add_argument("--check", metavar="REPORT_ID", help="Run a single check for REPORT_ID")
+    parser.add_argument("--start", action="store_true", help="Run the in-process scheduler loop")
+    parser.add_argument("--init-db", action="store_true", help="Apply schema.sql to the configured database")
     return parser
 
 

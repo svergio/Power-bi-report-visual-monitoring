@@ -25,8 +25,6 @@ class ScheduledJob:
 
 
 class InProcessScheduler:
-    """Планировщик в процессе с очередью и ограничением нагрузки между перезапусками."""
-
     def __init__(
         self,
         reports: list[Report],
@@ -112,8 +110,8 @@ class InProcessScheduler:
                             "report_id": job.report.id,
                             "pipeline_exception": True,
                             "hint": (
-                                "Обычно сценарий записывает ошибки в monitoring_checks; "
-                                "здесь неперехваченное исключение в воркере."
+                                "CheckReportUseCase normally persists failures to monitoring_checks; "
+                                "this is an unhandled exception in the worker thread."
                             ),
                         },
                     )
