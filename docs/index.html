@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Power BI report visual monitoring — rationale and cost model</title>
-  <meta name="description" content="Why screenshot-based visual monitoring for Power BI reports complements heavy SQL reconciliation; baseline diff, KPI canvas coverage, and observability cost model.">
+  <title>Power BI report visual monitoring — EN/RU</title>
+  <meta name="description" content="Why screenshot-based visual monitoring for Power BI reports complements heavy SQL reconciliation. Bilingual EN/RU.">
   <style>
     body { font-family: Georgia, "Times New Roman", serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #1a1a1a; }
     h1 { font-size: 1.75rem; font-weight: 600; }
@@ -15,21 +15,26 @@
     .muted { color: #444; font-size: 0.95rem; }
     nav { margin: 1.5rem 0; font-size: 0.95rem; }
     a { color: #0b57d0; }
+    hr.docsep { margin: 3rem 0; border: none; border-top: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Power BI report visual monitoring</h1>
-    <p class="muted">Evidence-oriented notes on rendered output as an observability signal. Companion to the
-      <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a> project.</p>
-    <nav>
-      <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Database schema (markdown)</a>
-      &middot;
-      <a href="https://github.com/svergio/Power-bi-report-visual-monitoring#readme">README</a>
-    </nav>
-  </header>
+  <p class="muted" style="margin-top:0"><a href="#en">English</a> &middot; <a href="#ru">Русский</a></p>
 
-  <article>
+  <article id="en" lang="en">
+    <header>
+      <h1>Power BI report visual monitoring</h1>
+      <p class="muted">Evidence-oriented notes on rendered output as an observability signal. Companion to the
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a> project.</p>
+      <nav>
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/wiki">Wiki (hub, EN/RU)</a>
+        &middot;
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Database schema (markdown, EN/RU)</a>
+        &middot;
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring#readme">README</a>
+      </nav>
+    </header>
+
     <h2>Definition</h2>
     <p><strong>Visual monitoring</strong> here means: open a published report in a controlled browser session, capture a <em>rendered</em> bitmap after the platform has executed the model (DAX, relationships, filters), compare it to a stored baseline, and persist a compact record (status, difference score, hashes, optional compressed delta). The observable is the <em>user-visible state</em> of the report, not an internal engine trace.</p>
     <p>This is distinct from <strong>Usage Metrics</strong> (who consumed what) and from the <strong>Performance Analyzer</strong> (per-visual timing inside Desktop). Those tools answer different questions. Visual monitoring answers: &ldquo;Did the rendered surface drift from what we agreed was correct?&rdquo;</p>
@@ -53,6 +58,49 @@
 
     <h2>Project pointer</h2>
     <p>The open-source monitor implements Strategy B with Selenium, PostgreSQL for check history, gzip-compressed XOR deltas, and an in-process scheduler. See the repository README for installation, Docker, and CLI usage.</p>
+  </article>
+
+  <hr class="docsep">
+
+  <article id="ru" lang="ru">
+    <header>
+      <h1>Визуальный мониторинг отчётов Power BI</h1>
+      <p class="muted">Заметки в научно-практическом стиле: отрендеренный отчёт как наблюдаемый сигнал. Дополнение к проекту
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a>.</p>
+      <nav>
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/wiki">Вики (хаб, EN/RU)</a>
+        &middot;
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Схема БД (markdown, EN/RU)</a>
+        &middot;
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring#readme">README</a>
+        &middot;
+        <a href="#en">English version above</a>
+      </nav>
+    </header>
+
+    <h2>Определение</h2>
+    <p><strong>Визуальный мониторинг</strong> здесь: открыть опубликованный отчёт в управляемой браузерной сессии, снять <em>растровый</em> снимок после того, как платформа выполнила модель (DAX, связи, фильтры), сравнить с сохранённым baseline и записать компактный результат (статус, метрика отличия, хеши, опционально сжатая дельта). Наблюдаемое &mdash; <em>видимое пользователю</em> состояние отчёта, а не внутренний трейс движка.</p>
+    <p>Это не то же самое, что <strong>Usage Metrics</strong> (кто и что смотрел) и не <strong>Performance Analyzer</strong> (тайминг визуалов в Desktop). Визуальный мониторинг отвечает на вопрос: &laquo;Уехала ли отрисованная поверхность от согласованного эталона?&raquo;</p>
+
+    <h2>Почему это работает</h2>
+    <p>Многие дефекты в проде проявляются как <em>вёрстка, условное форматирование, фильтры, &laquo;тихо&raquo; неверные меры</em>, пока обновление и шлюз зелёные. Пиксельная или хеш-ориентированная проверка ловит регрессии, которые тяжело закодировать инвариантным SQL по витрине, потому что ошибка сидит в последней миле семантики слоя отчёта.</p>
+    <p>Сравнение в духе quadtree / MSE (как в коде проекта) обменивает абсолютную точность на ограниченную работу: стоимость связана со структурой канваса и порогами, а не с кардинальностью каждой факт-таблицы модели.</p>
+
+    <h2>Геометрия дашборда и чувствительность к KPI</h2>
+    <p>Крупные операционные дашборды часто отдают большую долю площади канваса заголовочным KPI, трендам и отклонениям. Такие визуалы концентрируют внимание бизнеса сильнее, чем навигационный &laquo;хром&raquo;.</p>
+    <p>Мониторинг отрендеренного канваса даёт высокую <em>семантическую отдачу</em> на одну проверку: сдвиг крупной KPI-плитки человек заметит раньше, чем восстановит тот же &laquo;жест&raquo; несколькими ad hoc запросами к агрегатам.</p>
+
+    <h2>Модель стоимости наблюдения (рендер + diff против повторных запросов к хранилищу)</h2>
+    <p>Две стратегии проверки:</p>
+    <ul>
+      <li><strong>Стратегия A</strong> &mdash; несколько тяжёлых SQL (или эквивалентных проверок) к той же витрине, что питает модель, пересобирая фрагменты определений KPI. Каждая проверка может сканировать большие партиции, join-ить измерения и пересчитывать сложные меры. Суммарная задержка и нагрузка на DWH часто растут с числом и глубиной запросов.</li>
+      <li><strong>Стратегия B</strong> &mdash; один раз отрендерить отчёт движком BI, затем ограниченный визуальный diff к baseline и компактная строка журнала (<code>status</code>, <code>diff_percent</code>, хеш, длительность). Дорогое движение данных уже амортизировано платформой; шаг мониторинга упирается в стабильность рендера и сравнение изображения, стоимость которого завязана на разрешение и параметры diff, а не на <em>k</em> отдельных полных опросов модели на стороне источника.</li>
+    </ul>
+    <p>Во многих сценариях A с умеренным <em>k</em> нетривиальных запросов даёт большую суммарную нагрузку и хвост задержек, чем B на фиксированном расписании, <em>если</em> время рендера укладывается в SLA. Это качественное сравнение, не универсальная константа: один простой SELECT может быть дешевле долгого headless-рендера. Утверждение полезно при реалистично сложных KPI, а не в форме &laquo;всегда быстрее любого SQL&raquo;.</p>
+    <p>Конкретные миллисекунды &mdash; только после бенчмарка в вашей среде; здесь они не приводятся.</p>
+
+    <h2>Ссылка на проект</h2>
+    <p>Открытый монитор реализует стратегию B: Selenium, PostgreSQL для истории проверок, XOR-дельты с gzip, планировщик в процессе. Установка, Docker и CLI &mdash; в README репозитория.</p>
   </article>
 </body>
 </html>
