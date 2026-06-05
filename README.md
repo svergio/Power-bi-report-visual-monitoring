@@ -5,7 +5,7 @@
 
 **Documentation site (GitHub Pages):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/) — bilingual **EN/RU** rationale for visual monitoring, KPI canvas coverage, and an observability cost model (render + diff vs repeated warehouse queries).
 
-**Wiki (hub, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — short index with links to README, Pages, and `docs/` (sources in [`wiki/Home.md`](wiki/Home.md) in this repo).
+**Wiki (hub, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — expanded hub plus deep pages ([Architecture](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Architecture-and-pipeline), [Operations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Operations-and-tuning), [Limitations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Limitations-and-comparisons)); Markdown sources live under [`wiki/`](wiki/).
 
 **Also:** [Database schema `docs/DATABASE.md` (EN/RU)](docs/DATABASE.md) · [DDL `schema.sql`](schema.sql) · [Roadmap `ROADMAP.md` (EN/RU)](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
@@ -62,7 +62,7 @@ For a full Russian walkthrough, Docker service names, metrics, and troubleshooti
 
 **Сайт с обоснованием подхода (GitHub Pages, EN/RU на одной странице):** [https://svergio.github.io/Power-bi-report-visual-monitoring/](https://svergio.github.io/Power-bi-report-visual-monitoring/)
 
-**Вики (хаб, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — краткое оглавление и ссылки на README, Pages и `docs/` (исходники: [`wiki/Home.md`](wiki/Home.md)).
+**Вики (хаб, EN/RU):** [https://github.com/svergio/Power-bi-report-visual-monitoring/wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki) — расширенный хаб и отдельные страницы ([Architecture](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Architecture-and-pipeline), [Operations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Operations-and-tuning), [Limitations](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki/Limitations-and-comparisons)); исходники Markdown в [`wiki/`](wiki/).
 
 **Схема БД (EN/RU):** [docs/DATABASE.md](docs/DATABASE.md) · **DDL:** [schema.sql](schema.sql) · **Дорожная карта (EN/RU):** [ROADMAP.md](ROADMAP.md)
 

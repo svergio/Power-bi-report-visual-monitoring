@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Power BI report visual monitoring — EN/RU</title>
-  <meta name="description" content="Why screenshot-based visual monitoring for Power BI reports complements heavy SQL reconciliation. Bilingual EN/RU.">
+  <title>Power BI report visual monitoring — architecture, pipeline, and operations (EN/RU)</title>
+  <meta name="description" content="Visual monitoring for Power BI: rendered report as signal, architecture, check statuses, tuning, operations, limitations. Bilingual EN/RU.">
   <style>
-    body { font-family: Georgia, "Times New Roman", serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #1a1a1a; }
+    body { font-family: Georgia, "Times New Roman", serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.58; color: #1a1a1a; }
     h1 { font-size: 1.75rem; font-weight: 600; }
-    h2 { font-size: 1.25rem; margin-top: 2rem; }
+    h2 { font-size: 1.25rem; margin-top: 2.25rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.35rem; font-weight: 600; }
     p { margin: 0.75rem 0; }
     ul { margin: 0.5rem 0 0.75rem 1.25rem; }
     code { font-family: ui-monospace, monospace; font-size: 0.92em; }
@@ -24,10 +25,10 @@
   <article id="en" lang="en">
     <header>
       <h1>Power BI report visual monitoring</h1>
-      <p class="muted">Evidence-oriented notes on rendered output as an observability signal. Companion to the
-        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a> project.</p>
+      <p class="muted">Long-form documentation: rendered output as an observability signal, how the open-source monitor works, and how to run it safely. Project:
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a>.</p>
       <nav>
-        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/wiki">Wiki (hub, EN/RU)</a>
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/wiki">Wiki (hub + deep pages, EN/RU)</a>
         &middot;
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Database schema (markdown, EN/RU)</a>
         &middot;
@@ -38,14 +39,17 @@
     <h2>Definition</h2>
     <p><strong>Visual monitoring</strong> here means: open a published report in a controlled browser session, capture a <em>rendered</em> bitmap after the platform has executed the model (DAX, relationships, filters), compare it to a stored baseline, and persist a compact record (status, difference score, hashes, optional compressed delta). The observable is the <em>user-visible state</em> of the report, not an internal engine trace.</p>
     <p>This is distinct from <strong>Usage Metrics</strong> (who consumed what) and from the <strong>Performance Analyzer</strong> (per-visual timing inside Desktop). Those tools answer different questions. Visual monitoring answers: &ldquo;Did the rendered surface drift from what we agreed was correct?&rdquo;</p>
+    <p>The approach is complementary to warehouse-level tests: you still want data tests where they matter, but the report layer adds layout, interactions, and measure semantics that are expensive to re-specify as pure SQL invariants for every tile.</p>
 
     <h2>Why it is effective</h2>
     <p>Many production defects surface first as <em>layout, conditional formatting, filter interactions, or silently wrong measures</em> while refresh and gateway health remain green. A pixel-oriented or perceptual-hash-oriented check catches regressions that are tedious to encode as invariant SQL on the warehouse, because the bug lives in the last mile of semantics inside the report layer.</p>
     <p>A quadtree / MSE style comparison (as in this codebase) trades absolute fidelity for bounded work: cost scales with canvas structure and thresholds, not with the cardinality of every fact table touched by the model.</p>
+    <p>From an operations perspective, a scheduled visual check is also a <em>contract</em> on the external appearance of the service: if the screenshot changes, something in the chain (model, filters, theme, or host embedding) changed enough to matter for readers of that canvas.</p>
 
     <h2>Dashboard geometry and KPI sensitivity</h2>
     <p>Large operational dashboards often allocate a dominant share of canvas area to headline KPIs, trend cards, and variance callouts. Under typical design patterns, those visuals carry disproportionate business attention relative to peripheral navigation chrome.</p>
     <p>Monitoring the rendered canvas therefore attaches high <em>semantic leverage</em> per check: a visible shift in a large KPI tile is likely to be noticed by humans even when underlying row-level aggregates would require multiple ad hoc queries to reconstruct the same gestalt.</p>
+    <p>That does not mean small visuals are unimportant; it means prioritization for monitoring capacity often starts with the largest, most-read tiles when you have a limited render budget.</p>
 
     <h2>Observability cost model (render + diff vs repeated warehouse probes)</h2>
     <p>Consider two families of validation strategy:</p>
@@ -56,8 +60,88 @@
     <p>In many deployments, Strategy A with a moderate <em>k</em> of non-trivial reconciliation queries imposes higher cumulative warehouse pressure and tail latency than Strategy B at a fixed schedule, <em>provided</em> render time is acceptable for the SLA. This is a qualitative ordering statement, not a universal constant: a trivial single-query invariant can be cheaper than a long headless render. The useful claim is comparative under realistic KPI complexity, not &ldquo;always faster than any SQL&rdquo;.</p>
     <p>Concrete millisecond figures belong in a controlled benchmark appendix once measured in your environment; they are not asserted here.</p>
 
-    <h2>Project pointer</h2>
-    <p>The open-source monitor implements Strategy B with Selenium, PostgreSQL for check history, gzip-compressed XOR deltas, and an in-process scheduler. See the repository README for installation, Docker, and CLI usage.</p>
+    <h2>Architecture and data flow</h2>
+    <h3>Configuration sources</h3>
+    <p>The monitor reads <strong>report definitions</strong> from <code>reports.json</code> (or the path in <code>REPORTS_FILE</code>): each entry carries <code>id</code>, <code>name</code>, <code>url</code>, <code>interval</code>, <code>threshold</code>, and <code>enabled</code>. Those values are not duplicated inside PostgreSQL; the database stores <em>outcomes</em> of checks only.</p>
+    <p>Runtime settings (PostgreSQL connection, screenshot size, diff policy, retry policy, Selenium wait, optional Basic auth for Power BI) come from environment variables loaded via <code>Settings</code>. See the repository README for the full variable list.</p>
+
+    <h3>On-disk artifacts</h3>
+    <p>Under the configured <code>screenshots_dir</code> (default <code>./Data</code>), the tool maintains:</p>
+    <ul>
+      <li><code>Data/baselines/&lt;report_id&gt;_init_baseline.png</code> &mdash; the first accepted full-page capture used as the stable reference for XOR delta encoding.</li>
+      <li><code>Data/changes/&lt;report_id&gt;/last_baseline.png</code> &mdash; the rolling baseline image used for the next comparison.</li>
+      <li><code>Data/changes/&lt;report_id&gt;/current_screenshot.png</code> &mdash; the latest capture before it is promoted to <code>last_baseline.png</code> when the check succeeds.</li>
+      <li><code>Data/changes/&lt;report_id&gt;/current_screenshot_diff.png</code> &mdash; optional diff overlay when diff rendering is enabled.</li>
+    </ul>
+
+    <h3>Runtime pipeline (happy path)</h3>
+    <p>For each scheduled run the <strong>CheckReport</strong> use case: ensures directories exist; determines whether a baseline already exists (row in <code>baselines</code> plus both baseline images on disk); calls Selenium to capture either the initial baseline or the current page; on first run copies the init image to <code>last_baseline.png</code>, computes a perceptual hash (dhash), upserts <code>baselines</code>, and writes a <code>baseline_created</code> row to <code>monitoring_checks</code>.</p>
+    <p>On subsequent runs it compares the new capture to <code>last_baseline.png</code> using the configured diff policy (quadtree / MSE path in the domain service), optionally builds a delta against the <em>init</em> baseline, updates metrics, sets <code>changed</code> when <code>diff_percent &gt; 0</code> else <code>unchanged</code>, replaces <code>last_baseline.png</code> with the new image on success, updates the hash in <code>baselines</code>, and inserts a row into <code>monitoring_checks</code> including gzip-compressed XOR delta bytes when produced.</p>
+
+    <h3>Persistence layer</h3>
+    <p>PostgreSQL holds <code>baselines</code> (one row per report id) and the append-oriented log <code>monitoring_checks</code>. Views <code>v_latest_checks</code> and <code>v_report_stats</code> support dashboards and ad hoc queries. The schema is applied with <code>python -m pbimonitor --init-db</code>, which creates the schema if needed and executes <code>schema.sql</code>.</p>
+
+    <h3>Scheduling and workers</h3>
+    <p>An in-process scheduler dispatches enabled reports to worker threads with backpressure between runs. Failures in the worker that escape the use case are logged separately; normally errors are persisted as <code>status = error</code> rows so history stays coherent.</p>
+
+    <h2>Check statuses</h2>
+    <p>Each attempt produces one row in <code>monitoring_checks</code> with a string <code>status</code>:</p>
+    <ul>
+      <li><strong>baseline_created</strong> &mdash; first successful capture for that report: baseline images exist on disk, <code>baselines</code> row is written, <code>diff_percent</code> is 0, no delta payload.</li>
+      <li><strong>unchanged</strong> &mdash; baseline existed; diff pipeline returned <code>diff_percent == 0</code>; the new screenshot becomes the next <code>last_baseline.png</code>.</li>
+      <li><strong>changed</strong> &mdash; baseline existed; <code>diff_percent &gt; 0</code>; indicates a non-zero visual delta under the current policy before promotion of the screenshot.</li>
+      <li><strong>error</strong> &mdash; any exception in the check path (Selenium, diff, storage). <code>diff_percent</code> and screenshot hash are cleared in the stored record; <code>error</code> carries the message for triage.</li>
+    </ul>
+    <p>The per-report <code>threshold</code> from <code>reports.json</code> is used for <em>metrics</em> (tracking how often the diff score sits below that threshold); it does not by itself flip <code>changed</code> vs <code>unchanged</code> in code, where zero vs positive diff area is the branch.</p>
+
+    <h2>Configuration overview</h2>
+    <h3>reports.json</h3>
+    <p>Beyond URL and interval, pay attention to <code>threshold</code> (0&ndash;100) as a reporting knob for &ldquo;small visual drift&rdquo; tracking, and to <code>start_time</code> if you later align schedules with business hours. Disabled reports are skipped entirely when loading.</p>
+    <h3>Environment highlights</h3>
+    <ul>
+      <li><code>PG_*</code> and <code>PG_SCHEMA_ALLOWLIST</code> &mdash; database target and safety rail for schema application.</li>
+      <li><code>PAGE_LOAD_WAIT</code>, <code>SCREENSHOT_WIDTH</code>, <code>SCREENSHOT_HEIGHT</code> &mdash; trade stability vs fidelity; oversized viewports slow rendering.</li>
+      <li><code>MSE_THRESHOLD</code>, <code>MIN_BLOCK_SIZE</code>, <code>MAX_DEPTH</code>, <code>DIFF_ENABLED</code> &mdash; control quadtree sensitivity and whether diff images are drawn.</li>
+      <li><code>RETRY_*</code> &mdash; backoff for flaky networks or transient auth.</li>
+      <li><code>POWERBI_USERNAME</code> / <code>POWERBI_PASSWORD</code> and <code>POWERBI_AUTH_SERVER_WHITELIST</code> &mdash; optional Basic auth and host allowlisting for embedded flows.</li>
+    </ul>
+
+    <h2>Sensitivity and tuning</h2>
+    <h3>When diffs are noisy</h3>
+    <p>Animations, live clocks, rotating ads, or non-deterministic web fonts can create pixel churn without meaningful business change. Mitigations: lengthen wait, narrow viewport to the stable report region if your layout allows, increase <code>MSE_THRESHOLD</code> or <code>MIN_BLOCK_SIZE</code> cautiously, and verify that the report itself is not rendering timestamps into the canvas.</p>
+    <h3>When changes are missed</h3>
+    <p>Very small single-pixel shifts or low-contrast edits may fall under thresholds. Tighten <code>MSE_THRESHOLD</code>, reduce <code>MIN_BLOCK_SIZE</code> within performance limits, and confirm <code>last_baseline.png</code> is updating (so you are not comparing stale captures).</p>
+    <h3>Per-report threshold</h3>
+    <p>Use <code>threshold</code> consistently with how you read <code>below_diff_threshold_rate</code> in metrics: it is a product-level knob for &ldquo;nuisance vs signal&rdquo; analytics, not a second hidden diff gate in the status transition.</p>
+
+    <h2>Operations</h2>
+    <h3>Bootstrap sequence</h3>
+    <ol>
+      <li>Prepare PostgreSQL credentials and allowlist, copy <code>.env.example</code> to <code>.env</code>.</li>
+      <li>Install dependencies, set <code>PYTHONPATH=src</code> (or install the package editable).</li>
+      <li><code>python -m pbimonitor --init-db</code> &mdash; applies DDL.</li>
+      <li><code>python -m pbimonitor --build</code> &mdash; establishes baselines for all enabled reports.</li>
+      <li><code>python -m pbimonitor --check &lt;id&gt;</code> &mdash; smoke a single report.</li>
+      <li><code>python -m pbimonitor --start</code> &mdash; continuous scheduler loop.</li>
+    </ol>
+    <h3>Docker</h3>
+    <p><code>docker compose up --build -d</code> brings up the monitor process alongside PostgreSQL; optional Redis service is reserved for future distributed queueing and is not required for the current in-process scheduler.</p>
+    <h3>Operational prerequisites</h3>
+    <p>The host running Chrome must reach the report URLs; integrated authentication flows may need allowlists or manual sign-in strategies beyond Basic auth. Keep secrets out of git; treat <code>Data/</code> as sensitive cache because screenshots may contain confidential numbers.</p>
+
+    <h2>Limitations and fit</h2>
+    <p>Visual monitoring does not prove that <em>numbers are arithmetically correct</em>, only that the rendered page matches or diverges from a reference image under the chosen diff policy. Pair it with data quality checks where correctness is defined at row level.</p>
+    <p>Headless rendering consumes CPU and memory; dense schedules across many large viewports can contend with interactive users if collocated. Row-level security and per-user render differences mean baselines must be captured under representative credentials.</p>
+    <p>Features listed in the repository roadmap (user click scripts, OCR, external API probes, clustered deployment) are forward-looking until shipped; today&rsquo;s scope is the visual detection pipeline described above.</p>
+
+    <h2>Glossary</h2>
+    <ul>
+      <li><strong>Init baseline</strong> &mdash; first stable screenshot for XOR delta reference.</li>
+      <li><strong>Last baseline</strong> &mdash; rolling image used for the next comparison.</li>
+      <li><strong>diff_percent</strong> &mdash; percentage of canvas area flagged as different by the quadtree/MSE pipeline.</li>
+      <li><strong>dhash</strong> &mdash; perceptual hash of the baseline or current capture for quick fingerprinting.</li>
+      <li><strong>XOR delta</strong> &mdash; compressed binary difference between current pixels and the init baseline for forensic reconstruction.</li>
+    </ul>
   </article>
 
   <hr class="docsep">
@@ -65,10 +149,10 @@
   <article id="ru" lang="ru">
     <header>
       <h1>Визуальный мониторинг отчётов Power BI</h1>
-      <p class="muted">Заметки в научно-практическом стиле: отрендеренный отчёт как наблюдаемый сигнал. Дополнение к проекту
+      <p class="muted">Развёрнутая документация: отрендеренный отчёт как сигнал наблюдаемости, устройство открытого монитора и безопасная эксплуатация. Репозиторий:
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a>.</p>
       <nav>
-        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/wiki">Вики (хаб, EN/RU)</a>
+        <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/wiki">Вики (хаб и подстраницы, EN/RU)</a>
         &middot;
         <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Схема БД (markdown, EN/RU)</a>
         &middot;
@@ -81,14 +165,17 @@
     <h2>Определение</h2>
     <p><strong>Визуальный мониторинг</strong> здесь: открыть опубликованный отчёт в управляемой браузерной сессии, снять <em>растровый</em> снимок после того, как платформа выполнила модель (DAX, связи, фильтры), сравнить с сохранённым baseline и записать компактный результат (статус, метрика отличия, хеши, опционально сжатая дельта). Наблюдаемое &mdash; <em>видимое пользователю</em> состояние отчёта, а не внутренний трейс движка.</p>
     <p>Это не то же самое, что <strong>Usage Metrics</strong> (кто и что смотрел) и не <strong>Performance Analyzer</strong> (тайминг визуалов в Desktop). Визуальный мониторинг отвечает на вопрос: &laquo;Уехала ли отрисованная поверхность от согласованного эталона?&raquo;</p>
+    <p>Подход дополняет проверки на витрине: данные по-прежнему нужно тестировать там, где критична строковая корректность, а слой отчёта добавляет вёрстку, взаимодействия и семантику мер, которую тяжело выразить чистым SQL-инвариантом для каждой плитки.</p>
 
     <h2>Почему это работает</h2>
     <p>Многие дефекты в проде проявляются как <em>вёрстка, условное форматирование, фильтры, &laquo;тихо&raquo; неверные меры</em>, пока обновление и шлюз зелёные. Пиксельная или хеш-ориентированная проверка ловит регрессии, которые тяжело закодировать инвариантным SQL по витрине, потому что ошибка сидит в последней миле семантики слоя отчёта.</p>
     <p>Сравнение в духе quadtree / MSE (как в коде проекта) обменивает абсолютную точность на ограниченную работу: стоимость связана со структурой канваса и порогами, а не с кардинальностью каждой факт-таблицы модели.</p>
+    <p>С точки зрения эксплуатации периодическая визуальная проверка &mdash; это ещё и <em>контракт</em> на внешний вид сервиса: если снимок изменился, в цепочке (модель, фильтры, тема или хост встраивания) произошло достаточно сильное изменение для читателя этого канваса.</p>
 
     <h2>Геометрия дашборда и чувствительность к KPI</h2>
     <p>Крупные операционные дашборды часто отдают большую долю площади канваса заголовочным KPI, трендам и отклонениям. Такие визуалы концентрируют внимание бизнеса сильнее, чем навигационный &laquo;хром&raquo;.</p>
     <p>Мониторинг отрендеренного канваса даёт высокую <em>семантическую отдачу</em> на одну проверку: сдвиг крупной KPI-плитки человек заметит раньше, чем восстановит тот же &laquo;жест&raquo; несколькими ad hoc запросами к агрегатам.</p>
+    <p>Это не обесценивает мелкие визуалы; при ограниченном бюджете рендера приоритет обычно начинают с самых крупных и читаемых плиток.</p>
 
     <h2>Модель стоимости наблюдения (рендер + diff против повторных запросов к хранилищу)</h2>
     <p>Две стратегии проверки:</p>
@@ -99,8 +186,88 @@
     <p>Во многих сценариях A с умеренным <em>k</em> нетривиальных запросов даёт большую суммарную нагрузку и хвост задержек, чем B на фиксированном расписании, <em>если</em> время рендера укладывается в SLA. Это качественное сравнение, не универсальная константа: один простой SELECT может быть дешевле долгого headless-рендера. Утверждение полезно при реалистично сложных KPI, а не в форме &laquo;всегда быстрее любого SQL&raquo;.</p>
     <p>Конкретные миллисекунды &mdash; только после бенчмарка в вашей среде; здесь они не приводятся.</p>
 
-    <h2>Ссылка на проект</h2>
-    <p>Открытый монитор реализует стратегию B: Selenium, PostgreSQL для истории проверок, XOR-дельты с gzip, планировщик в процессе. Установка, Docker и CLI &mdash; в README репозитория.</p>
+    <h2>Архитектура и поток данных</h2>
+    <h3>Источники конфигурации</h3>
+    <p><strong>Определения отчётов</strong> читаются из <code>reports.json</code> (или пути в <code>REPORTS_FILE</code>): у каждой записи есть <code>id</code>, <code>name</code>, <code>url</code>, <code>interval</code>, <code>threshold</code>, <code>enabled</code>. Эти поля не дублируются в PostgreSQL: база хранит только <em>результаты</em> проверок.</p>
+    <p>Параметры окружения (подключение к PostgreSQL, размер снимка, политика diff, повторы Selenium, ожидание загрузки, опциональная Basic-auth для Power BI) задаются переменными и классом <code>Settings</code>. Полный список &mdash; в README репозитория.</p>
+
+    <h3>Файлы на диске</h3>
+    <p>В каталоге <code>screenshots_dir</code> (по умолчанию <code>./Data</code>) хранятся:</p>
+    <ul>
+      <li><code>Data/baselines/&lt;report_id&gt;_init_baseline.png</code> &mdash; первый принятый полностраничный снимок, опорный для XOR-дельты.</li>
+      <li><code>Data/changes/&lt;report_id&gt;/last_baseline.png</code> &mdash; скользящий baseline для следующего сравнения.</li>
+      <li><code>Data/changes/&lt;report_id&gt;/current_screenshot.png</code> &mdash; последний снимок до продвижения в <code>last_baseline.png</code> при успехе.</li>
+      <li><code>Data/changes/&lt;report_id&gt;/current_screenshot_diff.png</code> &mdash; опциональная картинка отличий, если включена отрисовка diff.</li>
+    </ul>
+
+    <h3>Пайплайн выполнения (успешный сценарий)</h3>
+    <p>Сценарий <strong>CheckReport</strong>: гарантирует каталоги; проверяет, есть ли baseline (строка в <code>baselines</code> и оба файла на диске); вызывает Selenium для снимка в <code>init_baseline</code> или <code>current</code>; при первом запуске копирует init в <code>last_baseline.png</code>, считает dhash, upsert в <code>baselines</code>, пишет в <code>monitoring_checks</code> статус <code>baseline_created</code>.</p>
+    <p>При последующих запусках сравнивает новый кадр с <code>last_baseline.png</code> по политике diff (quadtree/MSE в доменном сервисе), при необходимости строит дельту к <em>init</em>, обновляет метрики, выставляет <code>changed</code> при <code>diff_percent &gt; 0</code> иначе <code>unchanged</code>, заменяет <code>last_baseline.png</code> при успехе, обновляет хеш в <code>baselines</code>, вставляет строку в <code>monitoring_checks</code> с gzip-сжатыми байтами XOR-дельты, если они есть.</p>
+
+    <h3>Слой хранения</h3>
+    <p>PostgreSQL содержит <code>baselines</code> (одна строка на <code>report_id</code>) и журнал <code>monitoring_checks</code>. Представления <code>v_latest_checks</code> и <code>v_report_stats</code> упрощают дашборды и разбор инцидентов. Схема накатывается командой <code>python -m pbimonitor --init-db</code> (создание схемы при необходимости + <code>schema.sql</code>).</p>
+
+    <h3>Планировщик и воркеры</h3>
+    <p>В процессе работает планировщик с очередью и пулом потоков с ограничением нагрузки. Исключения в воркере вне сценария логируются отдельно; в норме ошибки попадают в <code>monitoring_checks</code> как <code>status = error</code>, чтобы история оставалась цельной.</p>
+
+    <h2>Статусы проверки</h2>
+    <p>Каждая попытка даёт строку в <code>monitoring_checks</code> со строковым <code>status</code>:</p>
+    <ul>
+      <li><strong>baseline_created</strong> &mdash; первый успешный снимок для отчёта: файлы baseline на диске, строка в <code>baselines</code>, <code>diff_percent</code> = 0, без дельты.</li>
+      <li><strong>unchanged</strong> &mdash; baseline уже был; пайплайн diff вернул <code>diff_percent == 0</code>; новый снимок становится следующим <code>last_baseline.png</code>.</li>
+      <li><strong>changed</strong> &mdash; baseline был; <code>diff_percent &gt; 0</code>; ненулевое визуальное отличие при текущей политике до продвижения снимка.</li>
+      <li><strong>error</strong> &mdash; исключение в цепочке (Selenium, diff, хранилище). В записи очищаются <code>diff_percent</code> и хеш снимка; в <code>error</code> пишется текст для разбора.</li>
+    </ul>
+    <p>Порог <code>threshold</code> из <code>reports.json</code> используется для <em>метрик</em> (доля проверок, где отличие ниже порога); он не является в коде вторым скрытым условием для ветки <code>changed</code> / <code>unchanged</code>, где сравнивается ноль и положительная доля отличия.</p>
+
+    <h2>Конфигурация (обзор)</h2>
+    <h3>reports.json</h3>
+    <p>Помимо URL и интервала важны <code>threshold</code> (0&ndash;100) как шкала для аналитики &laquo;мелкий дрейф&raquo; и <code>start_time</code>, если позже выровняете расписание под рабочие часы. Отключённые отчёты при загрузке не попадают в планировщик.</p>
+    <h3>Ключевые переменные окружения</h3>
+    <ul>
+      <li><code>PG_*</code> и <code>PG_SCHEMA_ALLOWLIST</code> &mdash; целевая БД и защита от применения схемы не туда.</li>
+      <li><code>PAGE_LOAD_WAIT</code>, <code>SCREENSHOT_WIDTH</code>, <code>SCREENSHOT_HEIGHT</code> &mdash; баланс стабильности и детализации; слишком большой viewport замедляет рендер.</li>
+      <li><code>MSE_THRESHOLD</code>, <code>MIN_BLOCK_SIZE</code>, <code>MAX_DEPTH</code>, <code>DIFF_ENABLED</code> &mdash; чувствительность quadtree и отрисовка diff-картинки.</li>
+      <li><code>RETRY_*</code> &mdash; повторы при нестабильной сети или сессии.</li>
+      <li><code>POWERBI_USERNAME</code> / <code>POWERBI_PASSWORD</code> и <code>POWERBI_AUTH_SERVER_WHITELIST</code> &mdash; опциональная Basic-auth и allowlist хостов.</li>
+    </ul>
+
+    <h2>Чувствительность и настройка</h2>
+    <h3>Когда diff шумит</h3>
+    <p>Анимации, живые часы, ротирующие баннеры или недетерминированные веб-шрифты дают пиксельный шум без бизнес-смысла. Что делать: увеличить ожидание, по возможности сузить область снимка до стабильной части отчёта, осторожно поднять <code>MSE_THRESHOLD</code> или <code>MIN_BLOCK_SIZE</code>, убедиться, что сам отчёт не рисует время внутри канваса.</p>
+    <h3>Когда изменения пропускаются</h3>
+    <p>Очень мелкие сдвиги или низкий контраст могут уйти под порог. Ужесточайте <code>MSE_THRESHOLD</code>, уменьшайте <code>MIN_BLOCK_SIZE</code> в разумных пределах и проверяйте, что <code>last_baseline.png</code> обновляется.</p>
+    <h3>Порог отчёта</h3>
+    <p><code>threshold</code> согласуйте с тем, как читаете <code>below_diff_threshold_rate</code>: это продуктовый рычаг &laquo;шум/сигнал&raquo; в метриках, а не второй скрытый гейт статуса в коде.</p>
+
+    <h2>Эксплуатация</h2>
+    <h3>Порядок первого запуска</h3>
+    <ol>
+      <li>Подготовить PostgreSQL и allowlist, скопировать <code>.env.example</code> в <code>.env</code>.</li>
+      <li>Установить зависимости, выставить <code>PYTHONPATH=src</code> (или editable install).</li>
+      <li><code>python -m pbimonitor --init-db</code> &mdash; применить DDL.</li>
+      <li><code>python -m pbimonitor --build</code> &mdash; построить baseline для всех включённых отчётов.</li>
+      <li><code>python -m pbimonitor --check &lt;id&gt;</code> &mdash; проверить один отчёт.</li>
+      <li><code>python -m pbimonitor --start</code> &mdash; непрерывный цикл планировщика.</li>
+    </ol>
+    <h3>Docker</h3>
+    <p><code>docker compose up --build -d</code> поднимает процесс монитора и PostgreSQL; профиль Redis в compose зарезервирован под будущую распределённую очередь и для текущего планировщика в процессе не обязателен.</p>
+    <h3>Предпосылки</h3>
+    <p>Хост с Chrome должен достукиваться до URL отчётов; интегрированная аутентификация может потребовать allowlist или сценариев входа сложнее Basic. Секреты не кладите в git; каталог <code>Data/</code> считайте чувствительным кэшем, так как на снимках могут быть конфиденциальные цифры.</p>
+
+    <h2>Ограничения и применимость</h2>
+    <p>Визуальный мониторинг не доказывает <em>арифметическую</em> корректность чисел, только совпадение или расхождение растра с эталоном при выбранной политике diff. Для корректности на уровне строк витрины оставьте профильные data-quality проверки.</p>
+    <p>Headless-рендер потребляет CPU и память; плотное расписание по многим большим вьюпортам может конкурировать с интерактивными пользователями на той же машине. RLS и различия прав пользователя означают, что baseline нужно снимать под репрезентативными учётными данными.</p>
+    <p>Пункты roadmap (клики, OCR, внешние API, кластер) &mdash; впереди, пока не влиты в релиз; текущий охват &mdash; описанный выше визуальный пайплайн.</p>
+
+    <h2>Глоссарий</h2>
+    <ul>
+      <li><strong>Init baseline</strong> &mdash; первый стабильный снимок, опорный для XOR-дельты.</li>
+      <li><strong>Last baseline</strong> &mdash; скользящий кадр для следующего сравнения.</li>
+      <li><strong>diff_percent</strong> &mdash; доля площади канваса, помеченная отличной quadtree/MSE.</li>
+      <li><strong>dhash</strong> &mdash; перцептивный хеш снимка для отпечатка.</li>
+      <li><strong>XOR-дельта</strong> &mdash; сжатый бинарный XOR текущего кадра к init baseline для последующего восстановления.</li>
+    </ul>
   </article>
 </body>
 </html>

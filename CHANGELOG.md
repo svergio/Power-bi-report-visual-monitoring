@@ -8,11 +8,11 @@
 
 ### Added
 
-- `wiki/Home.md` and `wiki/_Sidebar.md`: bilingual hub sources for [GitHub Wiki](https://github.com/svergio/Power-bi-report-visual-monitoring/wiki); README and Pages link to the Wiki.
+- Expanded GitHub Pages article (`docs/index.html`) and Wiki hub (`wiki/Home.md`, `wiki/_Sidebar.md`) plus deep pages `wiki/Architecture-and-pipeline.md`, `wiki/Operations-and-tuning.md`, `wiki/Limitations-and-comparisons.md`; README cross-links to the wiki pages.
 
 ### Added (RU)
 
-- `wiki/Home.md` и `wiki/_Sidebar.md`: двуязычные исходники для GitHub Wiki; в README и на Pages добавлены ссылки на Wiki.
+- Расширены статья на GitHub Pages (`docs/index.html`) и Wiki: хаб (`wiki/Home.md`, `wiki/_Sidebar.md`) и страницы Architecture / Operations / Limitations; в README добавлены ссылки на подстраницы Wiki.
 
 ### Changed
 
