@@ -24,8 +24,6 @@ class DiffPolicy:
 
 
 class ReportDiffService:
-    """Доменный сервис: визуальное отличие и XOR-дельта."""
-
     def calculate_hash(self, image_path: Path) -> Optional[str]:
         try:
             with Image.open(image_path) as img:

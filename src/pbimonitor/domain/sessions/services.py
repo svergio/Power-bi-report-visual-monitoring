@@ -6,8 +6,6 @@ from pbimonitor.domain.sessions.entities import AuthSession
 
 
 class SessionService:
-    """Проверка жизненного цикла сессии и продление по keepalive."""
-
     def should_reauthenticate(self, session: AuthSession | None, now: datetime) -> bool:
         if session is None:
             return True

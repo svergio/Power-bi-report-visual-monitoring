@@ -45,8 +45,6 @@ class BrowserConfig:
 
 
 class SeleniumClient:
-    """Адаптер Selenium с повторами и повторной авторизацией при истечении сессии."""
-
     def __init__(
         self,
         browser: BrowserConfig,

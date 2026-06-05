@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Power BI report visual monitoring — rationale and cost model</title>
+  <meta name="description" content="Why screenshot-based visual monitoring for Power BI reports complements heavy SQL reconciliation; baseline diff, KPI canvas coverage, and observability cost model.">
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.75rem; font-weight: 600; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; }
+    p { margin: 0.75rem 0; }
+    ul { margin: 0.5rem 0 0.75rem 1.25rem; }
+    code { font-family: ui-monospace, monospace; font-size: 0.92em; }
+    .muted { color: #444; font-size: 0.95rem; }
+    nav { margin: 1.5rem 0; font-size: 0.95rem; }
+    a { color: #0b57d0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Power BI report visual monitoring</h1>
+    <p class="muted">Evidence-oriented notes on rendered output as an observability signal. Companion to the
+      <a href="https://github.com/svergio/Power-bi-report-visual-monitoring">Power-bi-report-visual-monitoring</a> project.</p>
+    <nav>
+      <a href="https://github.com/svergio/Power-bi-report-visual-monitoring/blob/main/docs/DATABASE.md">Database schema (markdown)</a>
+      &middot;
+      <a href="https://github.com/svergio/Power-bi-report-visual-monitoring#readme">README</a>
+    </nav>
+  </header>
+
+  <article>
+    <h2>Definition</h2>
+    <p><strong>Visual monitoring</strong> here means: open a published report in a controlled browser session, capture a <em>rendered</em> bitmap after the platform has executed the model (DAX, relationships, filters), compare it to a stored baseline, and persist a compact record (status, difference score, hashes, optional compressed delta). The observable is the <em>user-visible state</em> of the report, not an internal engine trace.</p>
+    <p>This is distinct from <strong>Usage Metrics</strong> (who consumed what) and from the <strong>Performance Analyzer</strong> (per-visual timing inside Desktop). Those tools answer different questions. Visual monitoring answers: &ldquo;Did the rendered surface drift from what we agreed was correct?&rdquo;</p>
+
+    <h2>Why it is effective</h2>
+    <p>Many production defects surface first as <em>layout, conditional formatting, filter interactions, or silently wrong measures</em> while refresh and gateway health remain green. A pixel-oriented or perceptual-hash-oriented check catches regressions that are tedious to encode as invariant SQL on the warehouse, because the bug lives in the last mile of semantics inside the report layer.</p>
+    <p>A quadtree / MSE style comparison (as in this codebase) trades absolute fidelity for bounded work: cost scales with canvas structure and thresholds, not with the cardinality of every fact table touched by the model.</p>
+
+    <h2>Dashboard geometry and KPI sensitivity</h2>
+    <p>Large operational dashboards often allocate a dominant share of canvas area to headline KPIs, trend cards, and variance callouts. Under typical design patterns, those visuals carry disproportionate business attention relative to peripheral navigation chrome.</p>
+    <p>Monitoring the rendered canvas therefore attaches high <em>semantic leverage</em> per check: a visible shift in a large KPI tile is likely to be noticed by humans even when underlying row-level aggregates would require multiple ad hoc queries to reconstruct the same gestalt.</p>
+
+    <h2>Observability cost model (render + diff vs repeated warehouse probes)</h2>
+    <p>Consider two families of validation strategy:</p>
+    <ul>
+      <li><strong>Strategy A</strong> &mdash; run several heavy SQL (or DAX-equivalent) probes directly against the same warehouse that feeds the model, recreating fragments of each KPI definition. Each probe may scan large partitions, join dimensions, and recompute complex measures. Total latency and load often grow roughly with the number and depth of probes, especially when KPI logic is non-linear in data volume.</li>
+      <li><strong>Strategy B</strong> &mdash; let the report engine render once, then compute a bounded visual diff against a baseline and write a small log row (<code>status</code>, <code>diff_percent</code>, perceptual hash, duration). The expensive data movement has already been amortized by the BI platform; the incremental monitoring step is dominated by render stability and image comparison, whose cost is tied to image resolution and diff parameters rather than to issuing <em>k</em> separate full-model interrogations.</li>
+    </ul>
+    <p>In many deployments, Strategy A with a moderate <em>k</em> of non-trivial reconciliation queries imposes higher cumulative warehouse pressure and tail latency than Strategy B at a fixed schedule, <em>provided</em> render time is acceptable for the SLA. This is a qualitative ordering statement, not a universal constant: a trivial single-query invariant can be cheaper than a long headless render. The useful claim is comparative under realistic KPI complexity, not &ldquo;always faster than any SQL&rdquo;.</p>
+    <p>Concrete millisecond figures belong in a controlled benchmark appendix once measured in your environment; they are not asserted here.</p>
+
+    <h2>Project pointer</h2>
+    <p>The open-source monitor implements Strategy B with Selenium, PostgreSQL for check history, gzip-compressed XOR deltas, and an in-process scheduler. See the repository README for installation, Docker, and CLI usage.</p>
+  </article>
+</body>
+</html>

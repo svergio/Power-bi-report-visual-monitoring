@@ -1,18 +1,18 @@
 class PbimonitorError(Exception):
-    """Базовое исключение сбоев монитора."""
+    pass
 
 
 class SeleniumTimeout(PbimonitorError):
-    """Операция Selenium превысила заданный таймаут."""
+    pass
 
 
 class SessionExpired(PbimonitorError):
-    """Сессия авторизации недействительна."""
+    pass
 
 
 class DiffComputationError(PbimonitorError):
-    """Ошибка при сравнении изображений или построении дельты."""
+    pass
 
 
 class StorageError(PbimonitorError):
-    """Ошибка операции хранилища."""
+    pass

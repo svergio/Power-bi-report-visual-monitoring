@@ -17,8 +17,6 @@ from pbimonitor.metrics import MetricsRegistry
 
 
 class CheckReportUseCase:
-    """Сценарий: рендер, сравнение, дельта и сохранение результата для одного отчёта."""
-
     def __init__(
         self,
         selenium_client: SeleniumClient,
